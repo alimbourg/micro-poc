@@ -1,0 +1,31 @@
+{
+    "$schema": "https://www.krakend.io/schema/v3.json",
+    "version": 3,
+    "name": "KrakenD - API Gateway",
+    "timeout": "3000ms",
+    "cache_ttl": "300s",
+    "output_encoding": "json",
+    "_tls": {
+      "public_key": "/path/to/cert.pem",
+      "private_key": "/path/to/key.pem"
+    },
+    "endpoints": [
+      {
+        "endpoint": "/v1/debian",
+        "method": "GET",
+        "output_encoding": "no-op",
+        "backend": [
+          {
+            "url_pattern": "/",
+            "encoding": "no-op",
+            "sd": "static",
+            "method": "GET",
+            "host": [
+              "http://172.17.236.27/"
+            ],
+            "disable_host_sanitize": false
+          }
+        ]
+      }
+    ]
+  }
