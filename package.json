@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "consul": "^0.40.0"
+  }
+}
