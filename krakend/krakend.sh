@@ -4,3 +4,5 @@ docker run -d --name krackend \
     devopsfaith/krakend:2.0.4
 
 docker run -p 8080:8080 -v $PWD:/etc/krakend/ devopsfaith/krakend run --config /etc/krakend/krakend.json
+go run hello.go
+go run world.go
