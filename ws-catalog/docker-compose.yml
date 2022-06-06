@@ -1,0 +1,46 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:alpine
+    restart: always
+    ports:
+      # specify on which host interface you want it mapped (0.0.0.0 for all, 192.168.1.39 should work)
+      - "0.0.0.0:65432:5432"
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: rootroot
+      POSTGRES_DATABASE: nt
+    volumes:
+      - ./pg-data:/var/lib/postgresql/data
+    networks:
+      # you may set custom IP addresses
+      reseau:
+        ipv4_address: 192.168.10.10 
+  
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    restart: always
+    ports:
+      - "8002:80"
+      - "8443:443"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: alimbourg@gmail.com
+      PGADMIN_DEFAULT_PASSWORD: password
+    networks:
+      # you may set custom IP addresses
+      reseau:
+        ipv4_address: 192.168.10.20 
+
+networks:
+  reseau:
+        # use the bridge driver, but enable IPv6
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 192.168.10.0/24
+          gateway: 192.168.10.1
+  # default:
+  #  driver: bridge
+
