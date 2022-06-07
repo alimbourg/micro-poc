@@ -1,6 +1,7 @@
 const initOptions = {/* initialization options */};
 const pgp = require('pg-promise')(initOptions);
 const connectionString = 'postgresql://root:rootroot@127.0.0.1:65432/nt';
+// const connectionString = 'postgresql://root:rootroot@192.168.10.1:65432/nt';
 
 // Creating a new database instance from the connection details:
 const db = pgp(connectionString);

@@ -28,3 +28,4 @@ consul est un satellite, et tout passe par lui: configuration, messagerie asynch
 on lance ca avec son service et on s'y integre (API Connect: on decrit son propre service)
 en Go: https://www.consul.io/docs/connect/native/go
 
+
