@@ -5,8 +5,8 @@ import CardContent from '@mui/material/CardContent';
 import CardMedia from '@mui/material/CardMedia';
 import IconButton from '@mui/material/IconButton';
 import SkipNextIcon from '@mui/icons-material/SkipNext';
-import SkipNextIcon from '@mui/icons-material/SkipPrevious';
-import PlayArrowIcon from '@mui/material/PlayArrow';
+import SkipPreviousIcon from '@mui/icons-material/SkipPrevious';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 /*
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -34,7 +34,9 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 */
-export default function ProductCard() {
+
+
+export default function ProductCard(props) {
     //const classes = useStyles();
     //const theme = useTheme();
   
@@ -43,15 +45,15 @@ export default function ProductCard() {
       <div>
         <CardContent>
           <Typography component="h5" variant="h5">
-            Live From Space
+            {props.name||'Live From Space'}
           </Typography>
           <Typography variant="subtitle1" color="textSecondary">
-            Mac Miller
+            {props.description||'Not Mac Miller'}
           </Typography>
         </CardContent>
         <div>
         <IconButton>
-            < className="play icon" />
+            <PlayArrowIcon className="play icon" />
           </IconButton> 
           <IconButton>
             <SkipPreviousIcon />
