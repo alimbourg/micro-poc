@@ -1,0 +1,22 @@
+{
+  "name": "producer",
+  "version": "1.0.0",
+  "description": "A video encoder/rtmp server that will produce a stream of procedural stream",
+  "main": "index.js",
+  "scripts": {
+    "test": "test"
+  },
+  "keywords": [
+    "encode",
+    "video",
+    "audio",
+    "producer",
+    "rtmp"
+  ],
+  "author": "Awen Limbourg",
+  "license": "ISC",
+  "dependencies": {
+    "koa": "^2.13.4",
+    "node-gyp": "^9.0.0"
+  }
+}

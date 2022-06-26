@@ -34,3 +34,29 @@ service registration
 
 Without consul, services should be attempting to auto register until success
 
+An application with micro services.
+
+I need a Youtube Live content generator: it mixes audio with subtitles (likely) and video
+- Idea 1: start from an audio playlist or a raio such as RadioParadise, and generate according picture/video, with a slight delay
+- Idea 2: Buffer and send content to Youtube Live channel using rtmp (?)
+- Idea 3: A producer chose and mix channels to produce content: many video layer for mixing, one dynamic layer, one audio layer
+All these content generator are services, based on a time, and a produces address them to mix into a content that will be encoded for youtube live. We need a producer per youtube channel.
+Producer may boradcast meta information about the content being streamed
+
+So we have a video encoder from streampunk, that should be embedded in 'the producer', and send it on rtmp
+## STAGE 1:
+
+Producer: should embed video encoder from streampunk, and service the content to rtmp
+
+StaticImage: shoud generate a static image given some basic description such as width, height, time, and returns the actual generated bitmap (with possibly some metadata)
+
+VideoLan should be able to show the rtmp flux. It's a two services thing no need from Consul right now (next step)
+
+
+
+
+
+
+
+
+
