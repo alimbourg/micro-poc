@@ -1,10 +1,46 @@
 const beamcoder = require('./beamcoder.node')
+const Muxer = require('./muxer')
+const Audio = require('./audio')
+const Video = require('./video')
 
 function sleep(ms) {
      return new Promise(resolve => setTimeout(resolve, ms));
  }
+
+function dummy() {}
+module.exports.init = (typeof init !== undefined ? init : dummy)
+module.exports.start = (typeof start !== undefined ? start : dummy)
+module.exports.process = (typeof process !== undefined ? process : dummy)
+module.exports.finish = (typeof finish !== undefined ? finish : dummy)
+module.exports.shutdown = (typeof shutdown !== undefined ? shutdown : dummy)
+
+async function test() {
+     Muxer.init('rtmp://127.0.0.1:rtmp/live/teststream');
+     Audio.init(Muxer.get());
+     Video.init(Muxer.get());
+
+     Muxer.start();
+     Audio.start();
+     Video.start();
+
+     for (let i=0; i<1000; i++) {
+          Video.generate(i);
+          Audio.generate(i);
+          Video.process();          
+          Audio.process(1/25);
+     }
+
+     Video.finish();
+     Audio.finish();
+     Muxer.finish();
+
+     Video.shutdown();
+     Audio.shutdown();
+     Muxer.shutdown();
+}
+
 // Decode RTMP
-async function run() {
+async function process() {
      const mux = await beamcoder.muxer({ format_name: 'flv', 
          vsync: 0, tune: 'zerolatency', flags: 'low_delay', fflags: 'flush_packets'
      });
