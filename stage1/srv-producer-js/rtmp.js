@@ -3,36 +3,47 @@ const Muxer = require('./muxer')
 const Audio = require('./audio')
 const Video = require('./video')
 
+// ffmpeg -re -i ./file_example_MP4_1920_18MG.mp4 -vcodec copy -loop -1 -c:a aac -b:a 160k -ar 44100 -strict -2 -f flv rtmp:127.0.0.1/live/teststream
+
 function sleep(ms) {
      return new Promise(resolve => setTimeout(resolve, ms));
  }
 
 function dummy() {}
-module.exports.init = (typeof init !== undefined ? init : dummy)
-module.exports.start = (typeof start !== undefined ? start : dummy)
-module.exports.process = (typeof process !== undefined ? process : dummy)
-module.exports.finish = (typeof finish !== undefined ? finish : dummy)
-module.exports.shutdown = (typeof shutdown !== undefined ? shutdown : dummy)
+module.exports.init = (typeof init === 'function' ? init : dummy)
+module.exports.start = (typeof start === 'function' ? start : dummy)
+module.exports.process = (typeof process === 'function' ? doProcess : dummy)
+module.exports.finish = (typeof finish === 'function' ? finish : dummy)
+module.exports.shutdown = (typeof shutdown === 'function' ? shutdown : dummy)
 
 async function test() {
-     Muxer.init('rtmp://127.0.0.1:rtmp/live/teststream');
-     Audio.init(Muxer.get());
-     Video.init(Muxer.get());
+     await Muxer.init('rtmp://127.0.0.1:1935/live/teststream');
+     // await Muxer.init('file:./test.flv');
+     // await Audio.init(Muxer.get());
+     await Video.init(Muxer.get());
 
-     Muxer.start();
-     Audio.start();
-     Video.start();
+     //await Audio.start();
+     //await Video.start();
+     await Muxer.start();
 
-     for (let i=0; i<1000; i++) {
-          Video.generate(i);
-          Audio.generate(i);
-          Video.process();          
-          Audio.process(1/25);
+     for (let i=0; i<100000; i++) {
+          await sleep(10);
+
+          Video.generate(i, 1/25);
+          let audioStart = process.hrtime.bigint();
+          Audio.generate(i, 1/25);
+          const audioTime = process.hrtime.bigint() - audioStart;
+
+          await Video.process();
+          audioStart = process.hrtime.bigint();
+          await Audio.process(1/25);
+          const audioTime2 = process.hrtime.bigint() - audioStart;
+          console.log(`audio time for 40ms is ${Number(audioTime/BigInt(1e3))/1000}ms and ${Number(audioTime2/BigInt(1e3))/1000}ms = ${Number((audioTime+audioTime2)/BigInt(1e3))/1000} `);
      }
 
      Video.finish();
      Audio.finish();
-     Muxer.finish();
+     await Muxer.finish();
 
      Video.shutdown();
      Audio.shutdown();
@@ -40,7 +51,7 @@ async function test() {
 }
 
 // Decode RTMP
-async function process() {
+async function doProcess() {
      const mux = await beamcoder.muxer({ format_name: 'flv', 
          vsync: 0, tune: 'zerolatency', flags: 'low_delay', fflags: 'flush_packets'
      });
@@ -212,5 +223,5 @@ async function process() {
      await mux.writeTrailer();
 }
 // Encode to RTMP
-run();
+test();
 console.log('finished.')

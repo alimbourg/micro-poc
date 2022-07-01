@@ -1,8 +1,13 @@
 const beamcoder = require('./beamcoder.node')
 
-module.exports.init = init;
-module.exports.process = process;
+function dummy() {}
+module.exports.init = (typeof init === 'function' ? init : dummy)
+module.exports.start = (typeof start === 'function' ? start : dummy)
+module.exports.process = (typeof process === 'function' ? process : dummy)
+module.exports.finish = (typeof finish === 'function' ? finish : dummy)
+module.exports.shutdown = (typeof shutdown === 'function' ? shutdown : dummy)
 module.exports.pushS16 = pushS16;
+module.exports.generate = (typeof generate === 'function' ? generate : dummy)
 
 let parentMuxer = null;
 
@@ -68,7 +73,7 @@ async function init(muxer) {
     console.log(`audio frame size is ${audioEncoder.frame_size} samples or ${audioEncoder.frame_size / audioEncoder.sample_rate}s.`)
     console.log(`  requested bitrate is ${audioEncoder.bit_rate/(1024)}kb/s (kilobits per second)`)
 
-    audioStream = muxer.newStream({
+    audioStream = parentMuxer.newStream({
         name: 'aac', //'mp3',
         time_base: [1, audioSamplerate],
         interleaved: false,  // Set to false for manual interleaving, true for automatic
@@ -179,6 +184,24 @@ async function pushS16(samples, frequency) {
 }
 
 /**
+ * Simple generator, for testing purpose
+ * @param {int} frame 
+ */
+async function generate(frame, duration=1/25) {
+    if ((audioEncoder === null)||(audioBuffer === null)) return;
+    // produce 1/25 second worth of sample data
+    const samples = [];
+    const sampleCount = audioEncoder.sample_rate * duration;
+    for (let s16 = 0; s16 < sampleCount; s16 ++) { // One video frame (1/25th second, 25fps) of audio
+        const value = Math.sin((s16 * Math.PI * 2) / (sampleCount / 10)) * 32767;
+        samples.push(Math.floor(value));
+    }
+    await pushS16(samples, 22050 + (frame % 1000) * 20); // pushing some data at a sample rate, 1754 samples per video frame
+}
+
+
+
+/**
  * Mux some audio (duraiton max) final rtmp stream with audio
  * @param {Numeric} duration 
  */
@@ -191,6 +214,8 @@ async function process(duration) {
         ts_b = ts_b / (tb_a[1] * tb_b[0]);
         return ts_b;
     }          
+
+    if (audioBuffer === null || audioEncoder === null || audioFrame === null) return;
 
     let apackets = null;
     
@@ -239,7 +264,12 @@ async function process(duration) {
 }
 
 async function shutdown() {
-    audioEncoder.flush();
+    if (audioEncoder !== null) {
+        audioEncoder.flush();
+        audioEncoder = null;
+    }
+    audioFrame = null;
+    audioBuffer = null;
 }
 
 async function run() {
@@ -418,6 +448,6 @@ async function test() {
 
 }
 //audio.stats()
-test();
+//test();
 
-console.log('finished.');
+console.log('mounted audio.js');

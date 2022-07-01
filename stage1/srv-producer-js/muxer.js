@@ -1,12 +1,13 @@
 const beamcoder = require('./beamcoder.node')
 
-module.exports.init = init;
-module.exports.start = start;
+function dummy() {}
+module.exports.init = typeof init === 'function' ? init : dummy;
+module.exports.start = typeof start === 'function' ? start : dummy;
 module.exports.get = get;
-module.exports.finish = finish;
-module.exports.shutdown = init;
+module.exports.finish = typeof finish === 'function' ? finish : dummy;
+module.exports.shutdown = typeof shutdown === 'function' ? shutdown : dummy;
 
-let muxer = null;
+let muxerMaster = null;
 let muxerOutputUrl = '';
 
 async function init(url) {
@@ -15,37 +16,39 @@ async function init(url) {
     console.assert(muxers['mp3'] !== undefined);
     console.assert(muxers['mp4'] !== undefined);
     console.assert(muxers['flv'] !== undefined);
-    muxer = await beamcoder.muxer({ 
+    muxerMaster = await beamcoder.muxer({ 
         format_name: 'flv', 
         vsync: 0,
         tune: 'zerolatency',    // tuned for realtime streaming
-        flags: 'low_delay',
+        //flags: 'low_delay',
         fflags: 'flush_packets',
-        fdebug: 'ts',
+        //flvflags: 'flush_packets',
+//        fflags: 'flush_packets no_metadata no_duration_filesize',
+        //fdebug: 'ts',
     });
 
     muxerOutputUrl = url;            
-    return muxer;
+    return muxerMaster;
 }
 
 function get() {
-    return muxer;
+    return muxerMaster;
 }
 
 async function start() {
-    await muxer.openIO({
+    await muxerMaster.openIO({
         //url: 'file:./test.m4a'
         url: muxerOutputUrl //'file:./test.flv'
         //url: 'rtmp://127.0.0.1/live/teststream'
-   });
+   }, { 'live': 1 });
 
    // after this, streams may get different base time
-   return muxer.writeHeader();
+    await muxerMaster.writeHeader();
 }
 
 
 async function finish() {
-    muxer.writeTrailer();
+    await muxerMaster.writeTrailer();
 }
 
 async function shutdown() {
