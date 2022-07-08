@@ -1,5 +1,9 @@
 {
   "dependencies": {
-    "consul": "^0.40.0"
+    "@koa/router": "^11.0.1",
+    "consul": "^0.40.0",
+    "ejs": "^3.1.8",
+    "node-media-server": "^2.3.12",
+    "puppeteer": "^15.3.0"
   }
 }

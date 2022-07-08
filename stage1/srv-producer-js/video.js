@@ -24,7 +24,7 @@ let videoEncoder = null;
 let videoStream = null;
 let videoFrame = null;
 
-let headerWritten = false;
+let mireFrame = null;
 
 // https://stackoverflow.com/questions/48578088/streaming-flv-to-rtmp-with-ffmpeg-using-h264-codec-and-c-api-to-flv-js/48619330#48619330
 async function init(muxer) {
@@ -61,32 +61,42 @@ async function init(muxer) {
         });       
     }
     videoEncoder = await beamcoder.encoder(vencParams); 
-
+    // STREAMS that shall have codepar correctly setted
     videoStream = await muxer.newStream({
         name: 'h264',
-        time_base: [1, 90000], // 90 KHz
+        time_base: [1, 90000], // 90 KHz // it wont be this once
         interleaved: true,
         avg_frame_rate: videoEncoder.framerate, //[25, 1],
         // metadata: { jelly: 'plate' } 
     }); // Set to false for manual interleaving, true for automatic
     // https://stackoverflow.com/questions/51777937/how-to-write-the-avc1-atom-with-libavcodec-for-mp4-file-using-h264-codec
     // var extra = new Uint8Array([0x01, 255, 1, 0, 0xFC | 3, 0xE0 | 1, 0]);
+    for (prop in videoStream.codecpar) {
+        if (typeof videoStream.codecpar[prop] === 'function') continue;
+        if (!videoEncoder.hasOwnProperty(prop)) continue;
+        if (videoStream.codecpar[prop] == videoEncoder[prop]) continue;
+        if (videoStream.codecpar[prop] != 0) continue;
+        console.log('copying ', prop);
+        videoStream.codecpar[prop] = videoEncoder[prop];
+    }
+    /*
     Object.assign(videoStream.codecpar, {
         width: videoWidth,
         height: videoHeight,
         format: 'yuv420p',
-        // extradata
     });
+    */
     // AVCC vs AnnexB (AnnexB stores PPS info in every packet, AVCC store it once in extradata)
     // https://github.com/Streampunk/beamcoder/issues/35
     // if a decoded reencoded: vstr.codecpar.extradata = ts_demux.streams[video_index].codecpar.extradata;
+    // ffprobe -SHOW_STREAMS shows 'is_avc=true'
     if (videoEncoder.flags.GLOBAL_HEADER === true) {
         console.assert(videoEncoder.extradata !== null);
         Object.assign(videoStream.codecpar, {
             extradata: videoEncoder.extradata.slice(0) 
         });
     }
-
+    // A FRAME, that will embed
     videoFrame = await beamcoder.frame({
         width: vencParams.width,
         height: vencParams.height,
@@ -114,7 +124,7 @@ async function process() {
         return ts_b;
     }          
    
-    let vpackets = await videoEncoder.encode(videoFrame);
+    let vpackets = await videoEncoder.encode(mireFrame === null ? videoFrame : mireFrame);
     // send it to rtmp
     for (const pkt of vpackets.packets) {
         // 1 frame = 1/25s * 1000
@@ -131,6 +141,7 @@ async function process() {
         pkt.dts = ts_convert(videoEncoder.time_base, pkt.dts, videoStream.time_base); // * 100;
         // pkt.dts = pkt.dts * 90000/25;
         await parentMuxer.writeFrame(pkt);
+        console.log('video pts:', pkt.pts, ' frame:', videoFrame.pts, ' time:', videoFrame.pts/25);
     }
 
 }
@@ -141,7 +152,9 @@ async function shutdown() {
 
 
 async function generate(frame) {
+    if (mireFrame !== null) return;
     if (videoFrame === null) return;
+
     // await sleep(400/25);
     let linesize = videoFrame.linesize; // 2 linesizes, one for 
     let [ ydata, bdata, cdata ] = videoFrame.data; // 3 buffers, y b and c
@@ -206,3 +219,18 @@ async function test() {
 }
 
 //test();
+async function testDecode() {
+    const decoders = beamcoder.decoders();
+    const demuxer = await beamcoder.demuxer('file:'+'../srv-videogen-html/cache/mire.jpg');
+    let decoder = await beamcoder.decoder({ demuxer: demuxer, stream_index: 0, pix_fmt: 'yuv420p' }); 
+    let packet = await demuxer.read();
+    let decResult = await decoder.decode(packet); // Decode the frame
+    if (decResult.frames.length === 0) { // Frame may be buffered, so flush it out
+        decResult = await dec.flush();
+    }
+    mireFrame = decResult.frames[0]; 
+    // decResult.frames[0] is good to go, as a frame
+    // jpegResult.packets[0].data;
+}
+
+testDecode();

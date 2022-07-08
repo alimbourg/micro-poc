@@ -11,8 +11,8 @@ module.exports.generate = (typeof generate === 'function' ? generate : dummy)
 
 let parentMuxer = null;
 
-let audioSamplerate = 44100; // for flv + aac, it must(!) be one of the 44100 value, else ffprobe wont report mono
-let audioFormat = 'fltp';
+let audioSamplerate = 48000; // for flv + aac, it must(!) be one of the 44100 value, else ffprobe wont report mono
+let audioFormat = 's16';
 let audioFormatBitCount = 0;
 const audioChannels = 1;
 const audioLayout = 'mono';
@@ -42,12 +42,12 @@ async function init(muxer) {
     // encoders['aac'].sample_fmts[0] fltp
     // encoders['aac'].supported_samplerates[]
     // to know all capabilities for an ancoder: ffmpeg -h encoder=XXX
-    audioCodecName = 'aac';
+    audioCodecName = 'libfdk_aac';// 'aac';
     const encoderDesc = encoders[audioCodecName];
     audioFormat = encoderDesc.sample_fmts.includes('s16')?'s16':encoderDesc.sample_fmts.includes('fltp') ? 'fltp':'';
     console.assert(audioFormat!=='');
-    console.assert(encoderDesc.supported_samplerates.includes(44100));
-    audioSamplerate = 44100; // mandatory for aac => flv => rtmp
+    console.assert(encoderDesc.supported_samplerates.includes(audioSamplerate)); // 48000
+    // audioSamplerate = audioSamplerate; // mandatory for aac => flv => rtmp
 
     audioFormatBitCount = {'fltp': 32, 's16': 16}[audioFormat];
     audioBitsPerSample = audioFormatBitCount * audioChannels;
@@ -64,6 +64,8 @@ async function init(muxer) {
         bit_rate: audioSamplerate * 4, // requested bitrate should be sampleRate * 6,142 max for aac, audioBitrate, //960000, //2000000,
         max_rate: audioSamplerate * 4, //audioBitrate, //?
         sample_fmt: audioFormat,
+        flags: { GLOBAL_HEADER: true, LOW_DELAY: true,  },
+        flags2: { FAST: true },
         // frame_size: 2048, this is set by the encoder and cant be changed
     };
     audioEncoder = await beamcoder.encoder(aencParams);    
@@ -74,12 +76,21 @@ async function init(muxer) {
     console.log(`  requested bitrate is ${audioEncoder.bit_rate/(1024)}kb/s (kilobits per second)`)
 
     audioStream = parentMuxer.newStream({
-        name: 'aac', //'mp3',
+        name:  audioEncoder.name, //'aac', //'mp3',
         time_base: [1, audioSamplerate],
         interleaved: false,  // Set to false for manual interleaving, true for automatic
-        // channels: 1,
+        // channels: 1,cd ..
         // channel_layout: 'mono',
     });
+    for (prop in audioStream.codecpar) {
+        if (typeof audioStream.codecpar[prop] === 'function') continue;
+        if (!audioEncoder.hasOwnProperty(prop)) continue;
+        if (audioStream.codecpar[prop] == audioEncoder[prop]) continue;
+        if (audioStream.codecpar[prop] != 0) continue;
+        console.log('audio copying ', prop);
+        audioStream.codecpar[prop] = audioEncoder[prop];
+    }
+
     Object.assign(audioStream.codecpar, {
         channels: 1,
         channel_layout: 'mono',
@@ -92,6 +103,7 @@ async function init(muxer) {
         sample_rate: audioEncoder.sample_rate,
         bits_per_sample: audioBitsPerSample,
     });
+    Object.assign(audioStream.codecpar, { extradata: audioEncoder.extradata });
     // alloc on einternal buffer
     audioBuffer = createAudioBuffer(); // this is the internal audio queue 
     audioEncodedSampleCount = 0;
@@ -196,7 +208,7 @@ async function generate(frame, duration=1/25) {
         const value = Math.sin((s16 * Math.PI * 2) / (sampleCount / 10)) * 32767;
         samples.push(Math.floor(value));
     }
-    await pushS16(samples, 22050 + (frame % 1000) * 20); // pushing some data at a sample rate, 1754 samples per video frame
+    await pushS16(samples, audioEncoder.sample_rate); //22050 + (frame % 1000) * 20); // pushing some data at a sample rate, 1754 samples per video frame
 }
 
 
@@ -223,7 +235,7 @@ async function process(duration) {
     const bytePerSample = (audioBitsPerSample / 8);
     const frameSampleCount = audioFrame.linesize / bytePerSample;
     encoderFrameDuration = frameSampleCount / audioSamplerate;
-    nbEncodings = Math.floor(duration / encoderFrameDuration);
+    nbEncodings = audioBuffer.length() / frameSampleCount; //Math.floor(duration / encoderFrameDuration);
     
     for (numEncoding = 0; numEncoding < nbEncodings; numEncoding++) {
         //const linesize = aframe.linesize; // 576 sample * 2 bytes
@@ -259,6 +271,7 @@ async function process(duration) {
             pkt.dts = ts_convert(audioEncoder.time_base, pkt.dts, audioStream.time_base); // * 100;
 
             await parentMuxer.writeFrame(pkt);
+            console.log('audio pts:', pkt.pts, 'audioEncodedSampleCount:', audioEncodedSampleCount, 'time:', audioEncodedSampleCount/48000);
         }
     }
 }
@@ -291,8 +304,8 @@ async function run() {
     let astr = null;
     let aencParams = null;
     let aencoder = null;
-    const audioSamplerate = 44100; // for flv + aac, it must(!) be one of the 44100 value, else ffprobe wont report mono
-    const audioFormat = 'fltp';
+    const audioSamplerate = 48000; // for flv + aac, it must(!) be one of the 44100 value, else ffprobe wont report mono
+    const audioFormat = 's16';
     const audioFormatBitCount = {'fltp': 32, 's16': 16}[audioFormat];
     const audioChannels = 1;
     const audioBitsPerSample = audioFormatBitCount * audioChannels;
@@ -323,7 +336,7 @@ async function run() {
     console.log(`audio frame size is ${aencoder.frame_size} samples or ${aencoder.frame_size / aencoder.sample_rate}s.`)
     console.log(`  requested bitrate is ${aencoder.bit_rate/(1024)}kb/s (kilobits per second)`)
 
-    astr = mux.newStream({
+    astr = await mux.newStream({
         name: 'aac', //'mp3',
         time_base: [1, audioSamplerate],
         interleaved: false,  // Set to false for manual interleaving, true for automatic

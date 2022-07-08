@@ -2,7 +2,6 @@ const beamcoder = require('./beamcoder.node')
 const Muxer = require('./muxer')
 const Audio = require('./audio')
 const Video = require('./video')
-
 // ffmpeg -re -i ./file_example_MP4_1920_18MG.mp4 -vcodec copy -loop -1 -c:a aac -b:a 160k -ar 44100 -strict -2 -f flv rtmp:127.0.0.1/live/teststream
 
 function sleep(ms) {
@@ -19,14 +18,14 @@ module.exports.shutdown = (typeof shutdown === 'function' ? shutdown : dummy)
 async function test() {
      await Muxer.init('rtmp://127.0.0.1:1935/live/teststream');
      // await Muxer.init('file:./test.flv');
-     // await Audio.init(Muxer.get());
+     await Audio.init(Muxer.get());
      await Video.init(Muxer.get());
 
      //await Audio.start();
      //await Video.start();
      await Muxer.start();
 
-     for (let i=0; i<100000; i++) {
+     for (let i=0; i<1000000; i++) {
           await sleep(10);
 
           Video.generate(i, 1/25);
@@ -222,6 +221,10 @@ async function doProcess() {
      } 
      await mux.writeTrailer();
 }
+
+
+
+
 // Encode to RTMP
 test();
 console.log('finished.')

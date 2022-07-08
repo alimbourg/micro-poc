@@ -26,8 +26,20 @@ dans beamcoder / binding.gyp
         ]
       }],
 
-puis ../node_modules/.bin/node-gyp rebuild
+puis
+export CXXFLAGS="-mmacosx-version-min=12.0"
+export LDFLAGS="-mmacosx-version-min=12.0"
+../node_modules/.bin/node-gyp rebuild
+
+### check dependencies
+otool -L build/Release/beamcoder.node
+
 cp beamcoder/build/Release/beamcoder.node beamcoder.node
+
+SI ld: warning: object file (/Users/awen-limbourg/dev/micro-poc/stage1/srv-producer-js/ffmpeg/lib/libavfilter.a(dnn_backend_native_layer_pad.o)) was built for newer macOS version (12.0) than being linked (11.0)
+Les outils pour compiler sont datés
+sudo rm -rf /Library/Developer/CommandLineTools
+sudo xcode-select --install
 
 this should work
 ```
@@ -83,5 +95,17 @@ rtmp {
 }
 
 
-Play a flux 
+Play muxed stream 
 ffmpeg -re -I file_example_MP4_1920_18MG.mp4 -vcodec copy -loop -1 -c:a aac -b:a 160k -ar 44100 -strict -2 -f flv rtmp:127.0.0.1/live/bbb
+
+== FFMPEG ==
+compile ffmpeg (--enable-shared ?)
+./configure --cc=clang --host-c-flags= --host-ldflags= --enable-nonfree --enable-gpl --enable-shared --enable-pthreads --enable-libfreetype --enable-libfdk-aac --enable-libopus --enable-libvpx --enable-libx264 --enable-filters --enable-runtime-cpudetect --prefix=/Users/awen-limbourg/dev/micro-poc/stage1/srv-producer-js/ffmpeg
+
+// full static ffmpeg
+
+./configure  --cc=clang --host-c-flags= --host-ldflags= --pkg-config-flags="--static" --enable-nonfree --enable-gpl --enable-static --disable-shared --enable-pthreads --enable-libfreetype --enable-libfdk-aac --enable-libopus --enable-libvpx --enable-libx264 --enable-filters --enable-runtime-cpudetect --prefix=./
+make -j4
+make install
+
+

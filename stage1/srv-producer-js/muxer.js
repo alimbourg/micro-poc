@@ -20,11 +20,9 @@ async function init(url) {
         format_name: 'flv', 
         vsync: 0,
         tune: 'zerolatency',    // tuned for realtime streaming
-        //flags: 'low_delay',
-        fflags: 'flush_packets',
-        //flvflags: 'flush_packets',
-//        fflags: 'flush_packets no_metadata no_duration_filesize',
-        //fdebug: 'ts',
+        flags: 'low_delay',
+        fflags: 'flush_packets', // no_metadata no_duration_filesize',
+        fdebug: 'ts',
     });
 
     muxerOutputUrl = url;            
@@ -40,7 +38,7 @@ async function start() {
         //url: 'file:./test.m4a'
         url: muxerOutputUrl //'file:./test.flv'
         //url: 'rtmp://127.0.0.1/live/teststream'
-   }, { 'live': 1 });
+   });
 
    // after this, streams may get different base time
     await muxerMaster.writeHeader();

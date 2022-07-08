@@ -50,6 +50,8 @@ Producer: should embed video encoder from streampunk, and service the content to
 
 StaticImage: shoud generate a static image given some basic description such as width, height, time, and returns the actual generated bitmap (with possibly some metadata)
 
+(A video/image generator should use the network to propagate data, without using any disk cache if possible (it wont be, possible))
+
 VideoLan should be able to show the rtmp flux. It's a two services thing no need from Consul right now (next step)
 
 
