@@ -33,11 +33,17 @@ async function test() {
           Audio.generate(i, 1/25);
           const audioTime = process.hrtime.bigint() - audioStart;
 
+          let videoStart = process.hrtime.bigint();
           await Video.process();
+          const videoTime = process.hrtime.bigint() - videoStart;
+          console.log(`video time for 40ms is ${Number(videoTime/BigInt(1e3))/1000}ms`);
           audioStart = process.hrtime.bigint();
           await Audio.process(1/25);
           const audioTime2 = process.hrtime.bigint() - audioStart;
           console.log(`audio time for 40ms is ${Number(audioTime/BigInt(1e3))/1000}ms and ${Number(audioTime2/BigInt(1e3))/1000}ms = ${Number((audioTime+audioTime2)/BigInt(1e3))/1000} `);
+
+          console.log(`WHOLE generation time for 40ms is ${Number((audioTime+audioTime2+videoTime)/BigInt(1e3))/1000}ms`);
+
      }
 
      Video.finish();

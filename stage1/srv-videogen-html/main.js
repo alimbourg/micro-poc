@@ -60,9 +60,12 @@ function snapshotHandler(request, response, context) {
     (async () => {
         const browser = await Puppeteer.launch();
         const page = await browser.newPage();
+        if (typeof context[1] === 'string') {
+
+        }
         await page.setViewport({
-            width: 1920,
-            height: 1080,
+            width: 1280,
+            height: 720,
             deviceScaleFactor: 1,
           });
         await page.goto('http://localhost:3000/mire');
@@ -84,8 +87,8 @@ function webHandler(request, response) {
 
     try {
         let matches = null;
-        if ( (matches = request.url.match(/^\/mire(\..+)?$/i)) !== null ) {
-            if (matches[1] !== undefined) {
+        if ( (matches = request.url.match(/^\/(.+\/)?mire(\..+)?$/i)) !== null ) {
+            if (matches[2] !== undefined) {
                 snapshotHandler(request, response, matches);
                 return;
             }

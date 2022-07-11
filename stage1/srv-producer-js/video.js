@@ -152,7 +152,10 @@ async function shutdown() {
 
 
 async function generate(frame) {
-    if (mireFrame !== null) return;
+    if (mireFrame !== null) {
+        mireFrame.pts = frame; // this is a frame;
+        return;
+    }
     if (videoFrame === null) return;
 
     // await sleep(400/25);
@@ -220,9 +223,18 @@ async function test() {
 
 //test();
 async function testDecode() {
-    const decoders = beamcoder.decoders();
-    const demuxer = await beamcoder.demuxer('file:'+'../srv-videogen-html/cache/mire.jpg');
-    let decoder = await beamcoder.decoder({ demuxer: demuxer, stream_index: 0, pix_fmt: 'yuv420p' }); 
+    const demuxers = await beamcoder.demuxers();
+    // const decoders = beamcoder.decoders();
+    //const demuxer = await beamcoder.demuxer('file:'+'../srv-videogen-html/cache/mire.jpg');
+    // using iformat as an option ?
+    const iformat = demuxers['mjpeg'];
+    const demuxer = await beamcoder.demuxer({ url: 'http://127.0.0.1:3000/mire.jpg', iformat: iformat });
+    // const demuxer = await beamcoder.demuxer( 'http://127.0.0.1:3000/mire.jpg');
+    const stream = demuxer.streams[0];
+    // demuxer.streams[0].nb_frames = 1;
+    // await demuxer.seek({ stream_index: 0, timestamp: 0 });
+    let decoder = await beamcoder.decoder({ name: stream.codecpar.name });
+    // let decoder = await beamcoder.decoder({ demuxer: demuxer, stream_index: 0 }); 
     let packet = await demuxer.read();
     let decResult = await decoder.decode(packet); // Decode the frame
     if (decResult.frames.length === 0) { // Frame may be buffered, so flush it out
