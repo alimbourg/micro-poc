@@ -25,7 +25,8 @@ async function init(url) {
         fdebug: 'ts',
     });
 
-    muxerOutputUrl = url;            
+    muxerOutputUrl = url;
+               
     return muxerMaster;
 }
 

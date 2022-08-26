@@ -16,7 +16,9 @@
   "author": "Awen Limbourg",
   "license": "ISC",
   "dependencies": {
+    "@resvg/resvg-js": "^2.1.0",
     "koa": "^2.13.4",
-    "node-gyp": "^9.0.0"
+    "node-gyp": "^9.0.0",
+    "pngjs": "^6.0.0"
   }
 }

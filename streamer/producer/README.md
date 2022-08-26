@@ -91,21 +91,19 @@ opus sdl shtool texi2html theora wget x264 x265 xvid nasm
 
 https://huanle19891345.github.io/en/%E6%96%B9%E5%90%91%E5%92%8C%E8%B6%8B%E5%8A%BF/%E9%9F%B3%E8%A7%86%E9%A2%91/ffmpeg/ffmpegdebug/
 
-compile ffmpeg (--enable-shared ?)
+compile ffmpeg (--enable-filters)
 make clean
-./configure --cc=clang --host-cflags=-Og --host-ldflags=-g --enable-shared --enable-debug=3 --disable-optimizations --enable-nonfree --enable-gpl --enable-libfdk-aac --enable-libx264  --enable-libx265 --prefix=/Users/awen-limbourg/dev/micro-poc/stage1/srv-producer-js/ffmpeg
-./configure --cc=clang --host-cflags=-Og --host-ldflags=-g --enable-debug=3 --disable-optimizations --enable-static --disable-shared --pkg-config-flags="--static" --enable-nonfree --enable-gpl --enable-libfdk-aac --prefix=/Users/awen-limbourg/dev/micro-poc/stage1/srv-producer-js/ffmpeg
+# with debug
+./configure --cc=clang --host-cflags=-Og --host-ldflags=-g --enable-shared --enable-debug=3 --disable-optimizations --enable-nonfree --enable-gpl --enable-libfdk-aac --enable-libx264  --enable-libx265 --prefix=/Users/awen-limbourg/dev/micro-poc/streamer/producer/3rdparty/ffmpeg
+# without debug
+./configure --cc=clang --host-cflags= --host-ldflags= --disable-debug --enable-static --enable-shared --enable-nonfree --enable-gpl --enable-libfdk-aac  --enable-libx264  --enable-libx265 --prefix=/Users/awen-limbourg/dev/micro-poc/streamer/producer/3rdparty/ffmpeg
  
 make -j8
 // full static ffmpeg
 
-./configure  --host-cflags="-target arm64-apple-macos13" --host-ldflags= --cc=clang --enable-debug --pkg-config-flags="--static" --enable-nonfree --enable-gpl --enable-static --disable-shared --enable-pthreads --enable-libfreetype --enable-libfdk-aac --enable-libopus --enable-libvpx --enable-libx264  --enable-libx265 --enable-filters --enable-runtime-cpudetect --prefix=./
-
-make -j4
 make install (will strip debug infos from dylib)
-
 ### make install is stripping syms and debug infos ###
-if you want them with debug, copy everything manually
+if you want them with debug, copy everything manually but not in place on MAC
 https://blog.karthisoftek.com/a?ID=01000-c6eed356-c9f6-4a66-a042-06e695ecaf30
 cp libavformat/libavformat.59.dylib lib/libavformat.59.16.100.dylib => NOT 'IN PLACE' ON MAB, but via another temp file
 ls -lah lib/libavformat.59.16.100.dylib; cp libavformat/libavformat.59.dylib lib/libavformat.dll; mv lib/libavformat.dll lib/libavformat.59.16.100.dylib; ls -lah lib/libavformat.59.16.100.dylib
@@ -113,19 +111,22 @@ ls -lah lib/libavcodec.59.18.100.dylib; cp libavcodec/libavcodec.59.dylib lib/li
 ls -lah lib/libavdevice.59.4.100.dylib; cp libavdevice/libavdevice.59.dylib lib/libavdevice.dll; mv lib/libavdevice.dll lib/libavdevice.59.4.100.dylib; ls -lah lib/libavdevice.59.4.100.dylib
 ls -lah lib/libavutil.57.17.100.dylib; cp libavutil/libavutil.57.dylib lib/libavutil.dll; cp lib/libavutil.dll lib/libavutil.57.17.100.dylib; ls -lah lib/libavutil.57.17.100.dylib
 
-
 ### How to know if they are debug infos in lib ###
 dsymutil -s ../beamcoder.node | grep N_OSO 
 should be non empty
 
 
-## https://github.com/Streampunk/beamcoder
+## BEAMCODER ##
+A node/libav integration, to be compiled manually via node-gyp
+
+https://github.com/Streampunk/beamcoder
 from https://github.com/Streampunk/beamcoder/issues/83
 
 npm install node-gyp
 brew install ffmpeg (libav) => /opt/homebrew/lib + /opt/homebrew/include contain everything ffmpeg
 git clone https://github.com/Streampunk/beamcoder.git beamcoder
-dans beamcoder / binding.gyp
+
+the real ffmpeg path, dans beamcoder / binding.gyp
 "conditions":
       ['OS=="mac"', {
         "include_dirs" : [
@@ -137,13 +138,18 @@ dans beamcoder / binding.gyp
       }],
 
 puis
+
 export CXXFLAGS="-mmacosx-version-min=12.0"
 export LDFLAGS="-mmacosx-version-min=12.0"
-../node_modules/.bin/node-gyp rebuild
-For a DEBUG verions
-../node_modules/.bin/node-gyp --debug configure rebuild
+../../node_modules/.bin/node-gyp rebuild
+For a DEBUG version
+../../node_modules/.bin/node-gyp --debug configure rebuild
 
-cp build/Release/beamcoder.node .
+# to avoind in place replacement, remove it first then copy it
+rm ../../beamcoder.node
+cp build/Release/beamcoder.node ../..
+Or for DEBUG
+cp build/Debug/beamcoder.node ../..
 
 ### check dependencies
 otool -L build/Release/beamcoder.node
